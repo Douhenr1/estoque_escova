@@ -1,4 +1,4 @@
-# 🪥 BrushFlow API
+# 🪥 estoque_escova
 
 API REST para gerenciamento de estoque e logística de uma empresa de escovas de dentes. O sistema permite controlar o catálogo de produtos, organizado por categorias, e gerenciar pedidos de reposição de estoque junto a fornecedores.
 
@@ -6,9 +6,8 @@ API REST para gerenciamento de estoque e logística de uma empresa de escovas de
 
 ## 👥 Integrantes da equipe
 
-- Nome Completo do Integrante 1
-- Nome Completo do Integrante 2
-- Nome Completo do Integrante 3
+- Douglas Henrique De Almeida Liz
+
 
 ---
 
@@ -18,8 +17,6 @@ API REST para gerenciamento de estoque e logística de uma empresa de escovas de
 - TypeScript
 - Express
 - Supabase
-- PostgreSQL
-- UUID
 - Git
 
 ---
@@ -79,7 +76,7 @@ API REST para gerenciamento de estoque e logística de uma empresa de escovas de
 ## 🗂️ Estrutura do projeto
 
 ```
-brushflow-api/
+escovas/
 ├── src/
 │   ├── config/
 │   │   └── supabase.ts          # Configuração do cliente Supabase
@@ -111,8 +108,8 @@ brushflow-api/
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/brushflow-api.git
-cd brushflow-api
+git clone https://github.com/Douhenr1/estoque_escova.git
+cd projeto_estoque
 ```
 
 ### 2. Instalar as dependências
@@ -149,7 +146,7 @@ A API estará disponível em: `http://localhost:3000`
 | SUPABASE_URL   | URL do projeto Supabase                        |
 | SUPABASE_KEY   | Chave anon pública do Supabase                 |
 
-> ⚠️ **Nunca** envie o arquivo `.env` para o repositório.
+
 
 ---
 
