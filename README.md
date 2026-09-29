@@ -1,4 +1,4 @@
-# 🪥 estoque_escova
+#  estoque_escova
 
 API REST para gerenciamento de estoque e logística de uma empresa de escovas de dentes. O sistema permite controlar o catálogo de produtos, organizado por categorias, e gerenciar pedidos de reposição de estoque junto a fornecedores.
 
@@ -7,21 +7,23 @@ API REST para gerenciamento de estoque e logística de uma empresa de escovas de
 ## 👥 Integrantes da equipe
 
 - Douglas Henrique De Almeida Liz
+- Giovanna Souza de Assis
 
 
 ---
 
-## 🚀 Tecnologias utilizadas
+##  Tecnologias utilizadas
 
 - Node.js
 - TypeScript
 - Express
 - Supabase
 - Git
+- UUID
 
 ---
 
-## 📦 Entidades e relacionamento
+##  Entidades e relacionamento
 
 ### Categoria
 
@@ -73,7 +75,7 @@ API REST para gerenciamento de estoque e logística de uma empresa de escovas de
 
 ---
 
-## 🗂️ Estrutura do projeto
+##  Estrutura do projeto
 
 ```
 escovas/
@@ -138,7 +140,7 @@ A API estará disponível em: `http://localhost:3000`
 
 ---
 
-## 🔐 Variáveis de ambiente
+##  Variáveis de ambiente
 
 | Variável       | Descrição                                      |
 |----------------|------------------------------------------------|
@@ -150,7 +152,7 @@ A API estará disponível em: `http://localhost:3000`
 
 ---
 
-## 🗄️ Banco de dados
+##  Banco de dados
 
 ### Criação das tabelas no Supabase
 
