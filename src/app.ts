@@ -1,5 +1,4 @@
 import express from 'express';
-import swaggerUi from 'swagger-ui-express';
 import { especificacaoSwagger } from './config/swagger';
 import { errorHandler } from './middlewares/errorHandler';
 import categoriaRoutes from './routes/categoria.routes';
@@ -10,25 +9,47 @@ const app = express();
 
 app.use(express.json());
 
+const htmlSwagger = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrushFlow API — Documentação Swagger</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function () {
+      SwaggerUIBundle({
+        url: '/api-docs.json',
+        dom_id: '#swagger-ui',
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        layout: 'BaseLayout',
+      });
+    };
+  </script>
+</body>
+</html>`;
+
 // Documentação interativa Swagger/OpenAPI
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(especificacaoSwagger, {
-    customCssUrl:
-      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css',
-    customJs: [
-      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-standalone-preset.min.js',
-    ],
-  })
-);
 app.get('/api-docs.json', (_req, res) => {
   res.status(200).json(especificacaoSwagger);
 });
 
-// Health check
+app.get(['/api-docs', '/api-docs/'], (_req, res) => {
+  res.status(200).type('html').send(htmlSwagger);
+});
+
+// Redireciona a raiz direto para o Swagger
 app.get('/', (_req, res) => {
+  res.redirect('/api-docs');
+});
+
+// Health check
+app.get('/health', (_req, res) => {
   res.status(200).json({
     api: 'BrushFlow API',
     versao: '1.1.0',
