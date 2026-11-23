@@ -1,318 +1,417 @@
-#  estoque_escova
+# BrushFlow API (`estoque_escova`)
 
-API REST para gerenciamento de estoque e logística de uma empresa de escovas de dentes. O sistema permite controlar o catálogo de produtos, organizado por categorias, e gerenciar pedidos de reposição de estoque junto a fornecedores.
+API REST desenvolvida em **Node.js**, **TypeScript**, **Express** e **Supabase (PostgreSQL)** para gerenciamento de estoque e logística de uma empresa de escovas de dentes. O sistema controla o catálogo de produtos organizado por categorias, protege o saldo de estoque com regras de negócio e gerencia pedidos de reposição junto a fornecedores.
 
----
+## Objetivo do sistema
 
-## 👥 Integrantes da equipe
+Evoluir a API REST iniciada no primeiro bimestre para uma arquitetura Back-End em camadas orientada a objetos, resolvendo falhas de integridade de estoque (saldo negativo, recebimento duplicado de pedidos e exclusão de produtos com histórico), com testes automatizados (unitários e de integração), cobertura acima de 60%, documentação interativa Swagger/OpenAPI e suporte a deploy na Vercel.
 
-- Douglas Henrique De Almeida Liz
-- Giovanna Souza de Assis
+## Integrante da equipe
 
+* **Douglas Henrique De Almeida Liz**
 
----
+* Giovanna Assis
 
-##  Tecnologias utilizadas
+## Tecnologias utilizadas
 
-- Node.js
-- TypeScript
-- Express
-- Supabase
-- Git
-- UUID
+* **Node.js** e **TypeScript**
 
----
+* **Express**
 
-##  Entidades e relacionamento
+* **Supabase / PostgreSQL** (`@supabase/supabase-js` + `ws`)
 
-### Categoria
+* **UUID**
 
-| Campo       | Tipo      | Descrição                        |
-|-------------|-----------|----------------------------------|
-| id          | UUID      | Identificador único              |
-| nome        | string    | Nome da categoria                |
-| descricao   | string    | Descrição da categoria           |
-| ativo       | boolean   | Indica se a categoria está ativa |
-| created_at  | timestamp | Data de criação                  |
-| updated_at  | timestamp | Data da última atualização       |
+* **Vitest** e **@vitest/coverage-v8**
 
-### Produto
+* **Supertest**
 
-| Campo               | Tipo                        | Descrição                                    |
-|---------------------|-----------------------------|----------------------------------------------|
-| id                  | UUID                        | Identificador único                          |
-| categoria_id        | UUID (FK → categorias)      | Categoria à qual o produto pertence          |
-| nome                | string                      | Nome do produto                              |
-| descricao           | string                      | Descrição do produto                         |
-| tipo_cerdas         | enum (macia, media, dura)   | Tipo de cerdas da escova                     |
-| quantidade_estoque  | integer                     | Quantidade atual em estoque                  |
-| estoque_minimo      | integer                     | Quantidade mínima antes de repor             |
-| preco_unitario      | numeric                     | Preço unitário do produto                    |
-| ativo               | boolean                     | Indica se o produto está disponível          |
-| created_at          | timestamp                   | Data de criação                              |
-| updated_at          | timestamp                   | Data da última atualização                   |
+* **Swagger / OpenAPI 3.0** (`swagger-ui-express`)
 
-### PedidoReposicao
+* **dotenv**
 
-| Campo                 | Tipo                                        | Descrição                               |
-|-----------------------|---------------------------------------------|-----------------------------------------|
-| id                    | UUID                                        | Identificador único                     |
-| produto_id            | UUID (FK → produtos)                        | Produto a ser reposto                   |
-| quantidade_solicitada | integer                                     | Quantidade pedida ao fornecedor         |
-| quantidade_recebida   | integer                                     | Quantidade efetivamente recebida        |
-| status                | enum (pendente, aprovado, recebido, cancelado) | Status do pedido                     |
-| fornecedor            | string                                      | Nome do fornecedor                      |
-| observacoes           | string                                      | Observações opcionais do pedido         |
-| data_solicitacao      | timestamp                                   | Data em que o pedido foi gerado         |
-| data_recebimento      | timestamp                                   | Data em que o pedido foi recebido       |
-| created_at            | timestamp                                   | Data de criação                         |
-| updated_at            | timestamp                                   | Data da última atualização              |
+* **Git / GitHub**
+
+* **Vercel** (deploy serverless)
+
+## Entidades e relacionamentos
+
+### Categoria (`categorias`)
+
+| Campo | Tipo | Descrição | 
+| ----- | ----- | ----- | 
+| `id` | UUID (PK) | Identificador único | 
+| `nome` | VARCHAR(100) | Nome da categoria | 
+| `descricao` | TEXT | Descrição da categoria | 
+| `ativo` | BOOLEAN | Indica se a categoria está ativa | 
+| `created_at` | TIMESTAMPTZ | Data de criação | 
+| `updated_at` | TIMESTAMPTZ | Data da última atualização | 
+
+### Produto / Escova (`produtos`)
+
+| Campo | Tipo | Descrição | 
+| ----- | ----- | ----- | 
+| `id` | UUID (PK) | Identificador único | 
+| `categoria_id` | UUID (FK → `categorias.id`) | Categoria à qual o produto pertence (`ON DELETE RESTRICT`) | 
+| `nome` | VARCHAR(150) | Nome do produto | 
+| `descricao` | TEXT | Descrição do produto | 
+| `tipo_cerdas` | enum (`macia`, `media`, `dura`) | Tipo de cerdas da escova | 
+| `quantidade_estoque` | INTEGER | Quantidade atual em estoque (`CHECK >= 0`) | 
+| `estoque_minimo` | INTEGER | Quantidade mínima antes de repor (`CHECK >= 0`) | 
+| `preco_unitario` | NUMERIC(10, 2) | Preço unitário do produto (`CHECK > 0`) | 
+| `ativo` | BOOLEAN | Indica se o produto está disponível | 
+| `created_at` | TIMESTAMPTZ | Data de criação | 
+| `updated_at` | TIMESTAMPTZ | Data da última atualização | 
+
+### PedidoReposicao (`pedidos_reposicao`)
+
+| Campo | Tipo | Descrição | 
+| ----- | ----- | ----- | 
+| `id` | UUID (PK) | Identificador único | 
+| `produto_id` | UUID (FK → `produtos.id`) | Produto a ser reposto (`ON DELETE RESTRICT`) | 
+| `quantidade_solicitada` | INTEGER | Quantidade pedida ao fornecedor (`CHECK > 0`) | 
+| `quantidade_recebida` | INTEGER | Quantidade efetivamente recebida (`CHECK > 0`) | 
+| `status` | enum (`pendente`, `aprovado`, `recebido`, `cancelado`) | Status do pedido | 
+| `fornecedor` | VARCHAR(150) | Nome do fornecedor | 
+| `observacoes` | TEXT | Observações opcionais do pedido | 
+| `data_solicitacao` | TIMESTAMPTZ | Data em que o pedido foi gerado | 
+| `data_recebimento` | TIMESTAMPTZ | Data em que o pedido foi recebido | 
+| `created_at` | TIMESTAMPTZ | Data de criação | 
+| `updated_at` | TIMESTAMPTZ | Data da última atualização | 
 
 ### Relacionamentos
 
-- Uma **Categoria** pode conter vários **Produtos**; cada **Produto** pertence a uma **Categoria**.
-- Um **Produto** pode ter vários **Pedidos de Reposição**; cada **Pedido de Reposição** está vinculado a um único **Produto**.
+* Uma **Categoria** pode conter vários **Produtos**; cada **Produto** pertence a uma **Categoria**.
 
----
+* Um **Produto** pode ter vários **Pedidos de Reposição**; cada **Pedido de Reposição** está vinculado a um único **Produto**.
 
-##  Estrutura do projeto
+## Arquitetura em camadas e POO
+
+O projeto aplica Programação Orientada a Objetos (classes de entidade, interfaces de repositório, encapsulamento e injeção de dependência) com separação clara entre camadas:
+
+* **Routes (`src/routes/`):** Definem os endpoints REST e conectam Repositories, Services e Controllers.
+
+* **Controllers (`src/controllers/`):** Recebem requisições HTTP, extraem parâmetros/JSON, acionam os Services e devolvem status HTTP padronizados.
+
+* **Services (`src/services/`):** Implementam as validações e regras de negócio (**RN01**, **RN02** e **RN03**), isoladas do acesso direto ao banco.
+
+* **Repositories (`src/repositories/`):** Concentram toda a persistência e chamadas RPC no Supabase/PostgreSQL.
+
+* **Models (`src/models/`):** Definem interfaces, DTOs e classes de domínio (`CategoriaEntidade`, `ProdutoEntidade`, `PedidoReposicaoEntidade`).
+
+* **Errors e Middlewares (`src/errors/`, `src/middlewares/`):** Tratamento global com `AppError` e `errorHandler`, sem expor detalhes internos do banco.
+
+## Regras de negócio
+
+### RN01 — Impedir estoque negativo (`ProdutoService`)
+
+* Rejeita cadastro e atualização de produtos com `quantidade_estoque` negativa ou não inteira (**HTTP 422**).
+
+* Rejeita movimentações (`PATCH /produtos/:id/estoque`) que resultem em saldo inferior a zero (por exemplo, tentar retirar 15 unidades de um estoque de 10 mantém o saldo em 10 e retorna **HTTP 422**).
+
+* Garantida também no banco pela constraint `CHECK (quantidade_estoque >= 0)`.
+
+### RN02 — Impedir recebimento duplicado de pedidos (`PedidoReposicaoService`)
+
+* Somente pedidos com status `pendente` podem ser recebidos.
+
+* Pedidos já `recebido`, `cancelado` ou com outro status retornam **HTTP 409** sem incrementar o estoque.
+
+* O recebimento (`PATCH /pedidos-reposicao/:id/receber` ou `PUT /pedidos-reposicao/:id` com `{ "status": "recebido" }`) executa a função RPC transacional `receber_pedido_reposicao` no PostgreSQL com `SELECT ... FOR UPDATE`, atualizando pedido e estoque na mesma transação e protegendo contra requisições concorrentes.
+
+### RN03 — Impedir exclusão de produtos vinculados a pedidos (`ProdutoService`)
+
+* Antes de excluir um produto, verifica se existem pedidos de reposição vinculados.
+
+* Havendo vínculo, bloqueia a exclusão com **HTTP 409**, preservando o histórico e respeitando a chave estrangeira `ON DELETE RESTRICT`.
+
+### Regras complementares
+
+* Não é possível excluir uma **categoria** que possua produtos vinculados (**HTTP 409**).
+
+* Não é possível excluir ou alterar um **pedido** já com status `recebido` (**HTTP 409**).
+
+* Produtos com `quantidade_estoque <= estoque_minimo` são retornados no filtro `GET /produtos?estoque_baixo=true`.
+
+## Estrutura do projeto
 
 ```
-escovas/
+estoque_escova/
+├── api/
+│   └── index.ts                         # Entrada serverless para deploy na Vercel
+├── database/
+│   └── schema.sql                       # Tabelas, constraints e RPC transacional do Supabase
 ├── src/
 │   ├── config/
-│   │   └── supabase.ts          # Configuração do cliente Supabase
+│   │   ├── supabase.ts                  # Cliente Supabase (suporta ambiente principal e de testes)
+│   │   └── swagger.ts                   # Especificação OpenAPI 3.0.3 em português
 │   ├── controllers/
 │   │   ├── categoria.controller.ts
 │   │   ├── produto.controller.ts
 │   │   └── pedidoReposicao.controller.ts
+│   ├── errors/
+│   │   └── AppError.ts                  # Classe padronizada de erros da aplicação
+│   ├── middlewares/
+│   │   └── errorHandler.ts              # Middleware global de tratamento de erros
 │   ├── models/
 │   │   ├── categoria.model.ts
 │   │   ├── produto.model.ts
 │   │   └── pedidoReposicao.model.ts
+│   ├── repositories/
+│   │   ├── categoria.repository.ts
+│   │   ├── produto.repository.ts
+│   │   └── pedidoReposicao.repository.ts
 │   ├── routes/
 │   │   ├── categoria.routes.ts
 │   │   ├── produto.routes.ts
 │   │   └── pedidoReposicao.routes.ts
-│   ├── app.ts                   # Configuração do Express e rotas
-│   └── server.ts                # Inicialização do servidor
+│   ├── services/
+│   │   ├── categoria.service.ts
+│   │   ├── produto.service.ts
+│   │   └── pedidoReposicao.service.ts
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   ├── categoria.service.test.ts
+│   │   │   ├── pedidoReposicao.service.test.ts
+│   │   │   ├── produto.service.test.ts
+│   │   │   └── validadores.test.ts
+│   │   └── integration/
+│   │       ├── categoria.integration.test.ts
+│   │       ├── pedidoReposicao.integration.test.ts
+│   │       └── produto.integration.test.ts
+│   ├── utils/
+│   │   └── validadores.ts               # Validadores de UUID, tipos, inteiros e textos
+│   ├── app.ts                           # Configuração do Express, rotas, Swagger e errorHandler
+│   └── server.ts                        # Inicialização do servidor local
 ├── .env.example
 ├── .gitignore
 ├── package.json
 ├── tsconfig.json
+├── vercel.json
+├── vitest.config.ts
 └── README.md
+
 ```
 
----
-
-## ⚙️ Configuração e execução
+## Configuração e execução
 
 ### 1. Clonar o repositório
 
-```bash
+```
 git clone https://github.com/Douhenr1/estoque_escova.git
-cd projeto_estoque
+cd estoque_escova
+
 ```
 
 ### 2. Instalar as dependências
 
-```bash
+```
 npm install
+
 ```
 
 ### 3. Configurar as variáveis de ambiente
 
-Copie o arquivo de exemplo e preencha com suas credenciais do Supabase:
+Copie o arquivo de exemplo e preencha com as credenciais do seu projeto Supabase:
 
-```bash
+```
 cp .env.example .env
+
 ```
 
-Edite o `.env` com seus dados reais.
+### 4. Preparar o banco de dados no Supabase
 
-### 4. Iniciar a aplicação
+No painel do **Supabase**, abra o **SQL Editor**, cole o conteúdo do arquivo [database/schema.sql](https://www.google.com/search?q=database/schema.sql) e clique em **Run**.
 
-```bash
+### 5. Iniciar a aplicação
+
+```
+# Desenvolvimento
 npm run dev
+
+# Verificação de tipos e build de produção
+npm run typecheck
+npm run build
+npm start
+
 ```
 
-A API estará disponível em: `http://localhost:3000`
+A API estará disponível em `http://localhost:3000`.
 
----
+## Variáveis de ambiente
 
-##  Variáveis de ambiente
+| Variável | Obrigatória | Descrição | 
+| ----- | ----- | ----- | 
+| `PORT` | Não | Porta da API (padrão: `3000`) | 
+| `NODE_ENV` | Não | Ambiente (`development`, `test` ou `production`) | 
+| `SUPABASE_URL` | Sim | URL base do projeto Supabase (ex.: `https://seu-projeto.supabase.co`, sem `/rest/v1/`) | 
+| `SUPABASE_KEY` | Sim | Chave `anon` / `publishable` (ou `secret` se RLS estiver ativo) | 
+| `SUPABASE_TEST_URL` | Opcional | URL de projeto Supabase isolado para testes de integração | 
+| `SUPABASE_TEST_KEY` | Opcional | Chave do projeto Supabase isolado para testes de integração | 
 
-| Variável       | Descrição                                      |
-|----------------|------------------------------------------------|
-| PORT           | Porta em que a API vai rodar (padrão: 3000)    |
-| SUPABASE_URL   | URL do projeto Supabase                        |
-| SUPABASE_KEY   | Chave anon pública do Supabase                 |
+> Nunca envie o arquivo `.env` com credenciais reais ao repositório. O `.gitignore` bloqueia `.env`, `.env.local` e `.env.test`.
 
+## Banco de dados
 
+O script completo e idempotente para criar ou atualizar as tabelas, constraints (`CHECK` e `ON DELETE RESTRICT`), índices e a função transacional `receber_pedido_reposicao` está em [database/schema.sql](https://www.google.com/search?q=database/schema.sql).
 
----
+Resumo das principais estruturas criadas no Supabase:
 
-##  Banco de dados
+* **Tabelas:** `categorias`, `produtos` (FK `categoria_id` → `categorias.id` com `ON DELETE RESTRICT` e `CHECK (quantidade_estoque >= 0)`) e `pedidos_reposicao` (FK `produto_id` → `produtos.id` com `ON DELETE RESTRICT`).
 
-### Criação das tabelas no Supabase
+* **Função RPC `receber_pedido_reposicao(p_pedido_id UUID, p_quantidade_recebida INTEGER)`:** bloqueia a linha do pedido com `FOR UPDATE`, valida status `pendente`, incrementa o estoque em `produtos` e marca o pedido como `recebido` na mesma transação.
 
-Execute os scripts abaixo no **SQL Editor** do Supabase:
+## Endpoints da API
 
-```sql
--- Tabela: categorias
-CREATE TABLE categorias (
-  id UUID PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,
-  descricao TEXT NOT NULL,
-  ativo BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+### Sistema
 
--- Tabela: produtos
-CREATE TABLE produtos (
-  id UUID PRIMARY KEY,
-  categoria_id UUID NOT NULL REFERENCES categorias(id),
-  nome VARCHAR(150) NOT NULL,
-  descricao TEXT NOT NULL,
-  tipo_cerdas VARCHAR(10) NOT NULL CHECK (tipo_cerdas IN ('macia', 'media', 'dura')),
-  quantidade_estoque INTEGER NOT NULL DEFAULT 0,
-  estoque_minimo INTEGER NOT NULL DEFAULT 0,
-  preco_unitario NUMERIC(10, 2) NOT NULL,
-  ativo BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Tabela: pedidos_reposicao
-CREATE TABLE pedidos_reposicao (
-  id UUID PRIMARY KEY,
-  produto_id UUID NOT NULL REFERENCES produtos(id),
-  quantidade_solicitada INTEGER NOT NULL,
-  quantidade_recebida INTEGER,
-  status VARCHAR(20) NOT NULL DEFAULT 'pendente'
-    CHECK (status IN ('pendente', 'aprovado', 'recebido', 'cancelado')),
-  fornecedor VARCHAR(150) NOT NULL,
-  observacoes TEXT,
-  data_solicitacao TIMESTAMPTZ DEFAULT NOW(),
-  data_recebimento TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Função para incrementar estoque ao receber pedido
-CREATE OR REPLACE FUNCTION incrementar_estoque(p_produto_id UUID, p_quantidade INTEGER)
-RETURNS VOID AS $$
-BEGIN
-  UPDATE produtos
-  SET quantidade_estoque = quantidade_estoque + p_quantidade,
-      updated_at = NOW()
-  WHERE id = p_produto_id;
-END;
-$$ LANGUAGE plpgsql;
-```
-
----
-
-## 📋 Documentação dos endpoints
+| Método | Endpoint | Descrição | 
+| ----- | ----- | ----- | 
+| `GET` | `/` | Status e informações da API | 
+| `GET` | `/api-docs` | Documentação interativa Swagger UI | 
+| `GET` | `/api-docs.json` | Especificação OpenAPI em JSON | 
 
 ### Categorias
 
-| Método | Endpoint          | Descrição                         |
-|--------|-------------------|-----------------------------------|
-| GET    | /categorias       | Lista todas as categorias         |
-| GET    | /categorias/:id   | Busca uma categoria pelo ID       |
-| POST   | /categorias       | Cadastra uma nova categoria       |
-| PUT    | /categorias/:id   | Atualiza uma categoria            |
-| DELETE | /categorias/:id   | Remove uma categoria              |
+| Método | Endpoint | Descrição | 
+| ----- | ----- | ----- | 
+| `GET` | `/categorias` | Lista todas as categorias | 
+| `GET` | `/categorias/:id` | Busca uma categoria pelo ID | 
+| `POST` | `/categorias` | Cadastra uma nova categoria | 
+| `PUT` | `/categorias/:id` | Atualiza uma categoria | 
+| `DELETE` | `/categorias/:id` | Remove uma categoria (sem produtos vinculados) | 
 
 ### Produtos
 
-| Método | Endpoint        | Descrição                                                        |
-|--------|-----------------|------------------------------------------------------------------|
-| GET    | /produtos       | Lista todos os produtos (filtros: `categoria_id`, `estoque_baixo=true`) |
-| GET    | /produtos/:id   | Busca um produto pelo ID                                         |
-| POST   | /produtos       | Cadastra um novo produto                                         |
-| PUT    | /produtos/:id   | Atualiza um produto                                              |
-| DELETE | /produtos/:id   | Remove um produto                                                |
-
-**Query params disponíveis em `GET /produtos`:**
-- `categoria_id` — filtra por categoria
-- `estoque_baixo=true` — retorna apenas produtos com estoque ≤ estoque mínimo
+| Método | Endpoint | Descrição | 
+| ----- | ----- | ----- | 
+| `GET` | `/produtos` | Lista todos os produtos (filtros: `categoria_id`, `estoque_baixo=true`) | 
+| `GET` | `/produtos/:id` | Busca um produto pelo ID | 
+| `POST` | `/produtos` | Cadastra um novo produto (valida RN01) | 
+| `PUT` | `/produtos/:id` | Atualiza um produto (valida RN01) | 
+| `PATCH` | `/produtos/:id/estoque` | Movimenta estoque por variação inteira (valida RN01) | 
+| `DELETE` | `/produtos/:id` | Remove um produto sem pedidos vinculados (valida RN03) | 
 
 ### Pedidos de Reposição
 
-| Método | Endpoint                  | Descrição                                               |
-|--------|---------------------------|---------------------------------------------------------|
-| GET    | /pedidos-reposicao        | Lista todos os pedidos (filtros: `status`, `produto_id`) |
-| GET    | /pedidos-reposicao/:id    | Busca um pedido pelo ID                                 |
-| POST   | /pedidos-reposicao        | Abre um novo pedido de reposição                        |
-| PUT    | /pedidos-reposicao/:id    | Atualiza um pedido (status, recebimento etc.)           |
-| DELETE | /pedidos-reposicao/:id    | Remove um pedido (somente se não recebido)              |
+| Método | Endpoint | Descrição | 
+| ----- | ----- | ----- | 
+| `GET` | `/pedidos-reposicao` | Lista todos os pedidos (filtros: `status`, `produto_id`) | 
+| `GET` | `/pedidos-reposicao/:id` | Busca um pedido pelo ID | 
+| `POST` | `/pedidos-reposicao` | Abre um novo pedido de reposição (`pendente`) | 
+| `PUT` | `/pedidos-reposicao/:id` | Atualiza um pedido (status `recebido` aciona RN02) | 
+| `PATCH` | `/pedidos-reposicao/:id/receber` | Recebe pedido pendente de forma atômica (RN02) | 
+| `DELETE` | `/pedidos-reposicao/:id` | Remove um pedido ainda não recebido | 
 
----
+## Exemplos de requisições JSON
 
-## 📌 Exemplos de requisições
+### Criar uma categoria (`POST /categorias`)
 
-### Criar uma categoria
-
-`POST /categorias`
-
-```json
+```
 {
   "nome": "Infantil",
   "descricao": "Escovas de dente para crianças de 2 a 12 anos",
   "ativo": true
 }
+
 ```
 
-### Criar um produto
+### Criar um produto (`POST /produtos`)
 
-`POST /produtos`
-
-```json
+```
 {
-  "categoria_id": "uuid-da-categoria",
+  "categoria_id": "11111111-1111-4111-8111-111111111111",
   "nome": "EscovaMax Kids",
   "descricao": "Escova de dente infantil com cabo antiderrapante e cabeça pequena",
   "tipo_cerdas": "macia",
   "quantidade_estoque": 500,
   "estoque_minimo": 100,
-  "preco_unitario": 8.90,
+  "preco_unitario": 8.9,
   "ativo": true
 }
+
 ```
 
-### Abrir pedido de reposição
+### Movimentar estoque (`PATCH /produtos/:id/estoque`)
 
-`POST /pedidos-reposicao`
-
-```json
+```
 {
-  "produto_id": "uuid-do-produto",
+  "variacao": -5
+}
+
+```
+
+### Abrir pedido de reposição (`POST /pedidos-reposicao`)
+
+```
+{
+  "produto_id": "22222222-2222-4222-8222-222222222222",
   "quantidade_solicitada": 200,
   "fornecedor": "DenteCerto Distribuidora Ltda.",
   "observacoes": "Entrega urgente, estoque crítico"
 }
+
 ```
 
-### Registrar recebimento do pedido
+### Registrar recebimento do pedido (`PATCH /pedidos-reposicao/:id/receber`)
 
-`PUT /pedidos-reposicao/:id`
-
-```json
+```
 {
-  "status": "recebido",
   "quantidade_recebida": 200
 }
+
 ```
 
----
+## Testes automatizados e cobertura
 
-## ✅ Regras de negócio
+O projeto utiliza **Vitest**, **@vitest/coverage-v8** e **Supertest**.
 
-- Não é possível excluir uma **categoria** que possua produtos vinculados.
-- Não é possível excluir um **produto** que possua pedidos de reposição vinculados.
-- Não é possível excluir ou alterar um **pedido** com status `recebido`.
-- Ao marcar um pedido como `recebido`, o estoque do produto é atualizado automaticamente.
-- Produtos com `quantidade_estoque <= estoque_minimo` são sinalizados como estoque baixo.
+* **Testes unitários (`src/tests/unit/`):** 33 cenários isolados com mocks dos Repositories, cobrindo **TU01** (RN01 — estoque negativo), **TU02** (RN02 — recebimento duplicado), **TU03** (RN03 — exclusão de produto vinculado), `CategoriaService`, `validadores` e `errorHandler`.
+
+* **Testes de integração (`src/tests/integration/`):** 15 cenários com Supertest contra o Supabase, cobrindo **TI01** (cadastro de categoria), **TI02** (cadastro e consulta de escova), **TI03** (recebimento atômico e bloqueio de duplicidade) e todo o CRUD das 3 entidades, com limpeza automática dos registros criados em `afterAll`.
+
+### Comandos de execução
+
+```
+# Todos os testes (unitários + integração)
+npm test
+
+# Apenas testes unitários (sem conexão com banco)
+npm run test:unit
+
+# Apenas testes de integração
+npm run test:integration
+
+# Relatório completo de cobertura (mínimo exigido: 60% nas 4 métricas)
+npm run test:coverage
+
+```
+
+### Resultados reais de cobertura (`npm run test:coverage`)
+
+| Métrica | Mínimo exigido | Resultado obtido | 
+| ----- | ----- | ----- | 
+| **Lines** | 60% | **82.5%** | 
+| **Statements** | 60% | **82.5%** | 
+| **Functions** | 60% | **97.61%** | 
+| **Branches** | 60% | **66.78%** | 
+
+## Documentação Swagger/OpenAPI
+
+Com a API rodando localmente (`npm run dev`), acesse:
+
+* **Interface interativa:** `http://localhost:3000/api-docs`
+
+* **Especificação JSON:** `http://localhost:3000/api-docs.json`
+
+A documentação apresenta todos os endpoints das três entidades, parâmetros, exemplos JSON e códigos HTTP de sucesso e erro.
+
+## Deploy na Vercel (opcional)
+
+O projeto está preparado para deploy serverless na **Vercel** com `api/index.ts` e `vercel.json`:
+
+1. Importe o repositório `https://github.com/Douhenr1/estoque_escova` na Vercel.
+
+2. Em **Environment Variables**, configure `SUPABASE_URL` e `SUPABASE_KEY`.
+
+3. Clique em **Deploy** e valide `/` e `/api-docs` na URL gerada.

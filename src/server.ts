@@ -7,5 +7,6 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🪥  BrushFlow API rodando na porta ${PORT}`);
+  console.log(`📚  Documentação Swagger: http://localhost:${PORT}/api-docs`);
   console.log(`📦  Ambiente: ${process.env.NODE_ENV || 'development'}`);
 });

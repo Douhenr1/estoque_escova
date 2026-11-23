@@ -1,18 +1,27 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import ws from 'ws';
+import WebSocket from 'ws';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const emAmbienteTeste = process.env.NODE_ENV === 'test';
+
+const supabaseUrl = emAmbienteTeste
+  ? process.env.SUPABASE_TEST_URL || process.env.SUPABASE_URL
+  : process.env.SUPABASE_URL;
+
+const supabaseKey = emAmbienteTeste
+  ? process.env.SUPABASE_TEST_KEY || process.env.SUPABASE_KEY
+  : process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('As variáveis SUPABASE_URL e SUPABASE_KEY são obrigatórias.');
+  throw new Error(
+    'As variáveis de ambiente SUPABASE_URL e SUPABASE_KEY são obrigatórias (ou SUPABASE_TEST_URL e SUPABASE_TEST_KEY em ambiente de testes).'
+  );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
   realtime: {
-    transport: ws,
+    transport: WebSocket as any,
   },
 });
